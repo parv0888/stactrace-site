@@ -1,0 +1,621 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Stactrace: real-world work data for robots</title>
+<meta name="description" content="Stactrace collects first-person video of skilled work across India's factories, warehouses, salons and workshops, then pre-processes and annotates it for robotics and physical-AI teams.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --steel: #E6E9ED;
+    --steel-2: #D5DAE1;
+    --panel: #F6F7F9;
+    --graphite: #1A2230;
+    --graphite-2: #2A3445;
+    --text: #222B3A;
+    --muted: #5B6677;
+    --grid: rgba(26,34,48,.07);
+    --yellow: #FFC21A;
+    --yellow-deep: #C78F00;
+    --cyan: #0FA3C2;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { margin: 0; background: var(--steel); color: var(--text); font-family: "Barlow", system-ui, sans-serif; font-size: 17px; line-height: 1.55; -webkit-font-smoothing: antialiased; }
+  a { color: inherit; }
+  :focus-visible { outline: 3px solid var(--yellow); outline-offset: 3px; }
+  .wrap { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+  h1, h2, h3 { font-family: "Barlow Semi Condensed", sans-serif; color: var(--graphite); margin: 0; }
+  .mono { font-family: "IBM Plex Mono", monospace; }
+
+  header.top { position: sticky; top: 0; z-index: 20; background: rgba(230,233,237,.9); backdrop-filter: blur(10px); border-bottom: 1px solid var(--steel-2); }
+  .top .wrap { height: 64px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+  .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; font-family: "Barlow Semi Condensed", sans-serif; font-weight: 700; font-size: 24px; color: var(--graphite); letter-spacing: .01em; }
+  nav.links { display: flex; align-items: center; gap: 28px; }
+  nav.links a { text-decoration: none; font-size: 15px; font-weight: 500; }
+  nav.links a:not(.btn):hover { text-decoration: underline; text-underline-offset: 5px; }
+  .btn { display: inline-flex; align-items: center; gap: 8px; background: var(--graphite); color: #fff; font-weight: 600; font-size: 15px; padding: 12px 18px; border-radius: 4px; text-decoration: none; border: 0; cursor: pointer; font-family: inherit; }
+  .btn:hover { background: var(--graphite-2); }
+  .btn.y { background: var(--yellow); color: var(--graphite); }
+  .btn.y:hover { background: #FFCF4A; }
+  nav.links a.btn { color: #fff; }
+  @media (max-width: 820px) { nav.links a:not(.btn) { display: none; } }
+
+  .hero { position: relative; overflow: hidden; border-bottom: 1px solid var(--steel-2);
+    background-image: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size: 32px 32px; }
+  .hero .wrap { display: grid; grid-template-columns: 1fr 1.15fr; gap: 40px; align-items: center; padding-top: 64px; padding-bottom: 64px; }
+  .hero h1 { font-weight: 700; font-size: clamp(46px, 6.2vw, 84px); line-height: .96; letter-spacing: -.01em; }
+  .hero p.lede { margin: 24px 0 0; font-size: 19px; max-width: 44ch; color: var(--text); }
+  .ctas { margin-top: 32px; display: flex; gap: 16px; flex-wrap: wrap; align-items: center; }
+  .ctas a.ghost { font-weight: 600; text-decoration: underline; text-underline-offset: 5px; }
+
+  .cell { position: relative; background: var(--panel); border: 1px solid var(--steel-2); border-radius: 6px; padding: 10px; }
+  .cell::before, .cell::after { content: ""; position: absolute; width: 14px; height: 14px; border-color: var(--graphite); border-style: solid; }
+  .cell::before { top: -1px; left: -1px; border-width: 2px 0 0 2px; }
+  .cell::after { bottom: -1px; right: -1px; border-width: 0 2px 2px 0; }
+  .cell svg { display: block; width: 100%; height: auto; }
+  .readout { display: grid; grid-template-columns: repeat(4, 1fr); border-top: 1px solid var(--steel-2); margin-top: 8px; }
+  .readout div { padding: 8px 10px 2px; font-size: 12px; color: var(--muted); }
+  .readout div + div { border-left: 1px solid var(--steel-2); }
+  .readout b { display: block; font-family: "IBM Plex Mono", monospace; font-weight: 500; font-size: 15px; color: var(--graphite); font-variant-numeric: tabular-nums; }
+
+  section.block { padding: 96px 0; border-bottom: 1px solid var(--steel-2); }
+  .block h2 { font-weight: 700; font-size: clamp(34px, 4.4vw, 54px); line-height: 1; max-width: 18ch; }
+  .block .intro { margin: 18px 0 0; max-width: 60ch; color: var(--muted); font-size: 18px; }
+  .dark { background: var(--graphite); color: #D6DCE6; border-bottom: 0 !important; }
+  .dark h2, .dark h3 { color: #fff; }
+  .dark .intro { color: #A9B4C5; }
+
+  .d2r { margin-top: 48px; display: grid; grid-template-columns: 1fr 200px 1fr; gap: 20px; align-items: stretch; }
+  .d2r .cell { background: #fff; }
+  .panel-title { display: flex; justify-content: space-between; font-size: 14px; font-weight: 600; color: var(--graphite); padding: 2px 4px 8px; }
+  .panel-title span:last-child { color: var(--muted); font-weight: 500; }
+  .pipe { display: flex; flex-direction: column; justify-content: center; gap: 10px; }
+  .pipe div { border: 1px solid var(--steel-2); background: var(--panel); border-radius: 4px; padding: 10px 12px; font-size: 14px; font-weight: 600; color: var(--muted); transition: background .25s, color .25s, border-color .25s; }
+  .pipe div.on { background: var(--yellow); color: var(--graphite); border-color: var(--yellow-deep); }
+  @media (max-width: 900px) { .d2r { grid-template-columns: 1fr; } .pipe { flex-direction: row; flex-wrap: wrap; } .pipe div { flex: 1 1 40%; } }
+
+  .svc-grid { margin-top: 48px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  .svc { background: var(--panel); border: 1px solid var(--steel-2); border-top: 4px solid var(--graphite); padding: 26px 24px 18px; }
+  .svc .tag { font-family: "IBM Plex Mono", monospace; font-size: 13px; color: var(--yellow-deep); }
+  .svc h3 { font-size: 28px; font-weight: 700; margin: 6px 0 10px; }
+  .svc p { margin: 0 0 14px; }
+  .svc ul { list-style: none; margin: 0; padding: 0; }
+  .svc li { padding: 9px 0 9px 22px; border-top: 1px solid var(--steel-2); font-size: 15px; color: var(--muted); position: relative; }
+  .svc li::before { content: ""; position: absolute; left: 2px; top: 16px; width: 8px; height: 8px; background: var(--yellow); border: 1px solid var(--yellow-deep); }
+  @media (max-width: 900px) { .svc-grid { grid-template-columns: 1fr; } }
+
+  .sector { margin-top: 44px; display: grid; grid-template-columns: 260px 1fr; gap: 28px; padding-top: 28px; border-top: 2px solid var(--graphite); }
+  .sector + .sector { margin-top: 36px; }
+  .sector-head h3 { font-size: 28px; font-weight: 700; line-height: 1.05; }
+  .sector-head p { margin: 8px 0 0; font-size: 15px; color: var(--muted); }
+  .ind-grid { display: grid; grid-template-columns: repeat(3, 1fr); border-top: 1px solid var(--steel-2); border-left: 1px solid var(--steel-2); }
+  .ind { padding: 20px 20px 22px; border-right: 1px solid var(--steel-2); border-bottom: 1px solid var(--steel-2); background: var(--panel); transition: background .2s; }
+  .ind:hover { background: #fff; }
+  .ind svg { width: 36px; height: 36px; stroke: var(--graphite); fill: none; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+  .ind svg .acc { stroke: var(--yellow-deep); }
+  .ind h4 { font-family: "Barlow Semi Condensed", sans-serif; color: var(--graphite); font-size: 20px; font-weight: 700; margin: 12px 0 4px; }
+  .ind p { margin: 0; font-size: 15px; color: var(--muted); }
+  .more { margin-top: 36px; padding: 22px 24px; background: var(--graphite); color: #D6DCE6; display: flex; justify-content: space-between; align-items: center; gap: 20px; flex-wrap: wrap; }
+  .more p { margin: 0; max-width: 62ch; }
+  .more b { color: #fff; }
+  @media (max-width: 1000px) { .sector { grid-template-columns: 1fr; gap: 16px; } .ind-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 560px) { .ind-grid { grid-template-columns: 1fr; } }
+
+  ol.steps { list-style: none; margin: 48px 0 0; padding: 0; display: grid; grid-template-columns: repeat(5, 1fr); counter-reset: s; }
+  ol.steps li { counter-increment: s; padding: 0 18px 0 0; position: relative; }
+  ol.steps li::before { content: counter(s, decimal-leading-zero); display: block; font-family: "IBM Plex Mono", monospace; font-size: 14px; color: var(--yellow); padding-bottom: 12px; border-bottom: 2px solid #3A4659; margin-bottom: 16px; }
+  ol.steps h3 { font-size: 22px; margin-bottom: 6px; }
+  ol.steps p { margin: 0; font-size: 15px; color: #A9B4C5; }
+  @media (max-width: 900px) { ol.steps { grid-template-columns: 1fr 1fr; gap: 32px 20px; } }
+  @media (max-width: 560px) { ol.steps { grid-template-columns: 1fr; } }
+
+  .prov { margin-top: 48px; display: grid; grid-template-columns: 1fr 1fr; gap: 48px; }
+  .prov dl { margin: 0; }
+  .prov dt { font-weight: 600; color: var(--graphite); font-size: 19px; margin-top: 20px; }
+  .prov dt:first-child { margin-top: 0; }
+  .prov dd { margin: 4px 0 0; color: var(--muted); }
+  .manifest { background: var(--graphite); color: #D6DCE6; border-radius: 6px; padding: 22px 24px; }
+  .manifest h3 { color: #fff; font-size: 20px; margin-bottom: 12px; }
+  .manifest table { width: 100%; border-collapse: collapse; font-size: 15px; }
+  .manifest td { padding: 9px 0; border-top: 1px solid #34405A; vertical-align: top; }
+  .manifest td:first-child { color: #8E9AB0; width: 42%; padding-right: 12px; }
+  .manifest td.ok { color: var(--yellow); }
+  .manifest p { margin: 12px 0 0; font-size: 13px; color: #8E9AB0; }
+  @media (max-width: 900px) { .prov { grid-template-columns: 1fr; } }
+
+  .formats { margin-top: 28px; display: flex; flex-wrap: wrap; gap: 10px; }
+  .formats span { font-family: "IBM Plex Mono", monospace; font-size: 14px; border: 1px solid var(--graphite); padding: 7px 12px; border-radius: 3px; background: var(--panel); }
+
+  .contact .wrap { display: grid; grid-template-columns: .85fr 1.15fr; gap: 56px; }
+  .contact .side p { color: var(--muted); }
+  .contact .side a { font-weight: 600; color: var(--graphite); }
+  form { background: var(--panel); border: 1px solid var(--steel-2); padding: 28px; display: grid; grid-template-columns: 1fr 1fr; gap: 18px; position: relative; }
+  .field { display: grid; gap: 6px; }
+  .field.full { grid-column: 1 / -1; }
+  label { font-size: 14px; font-weight: 600; color: var(--graphite); }
+  label small { font-weight: 400; color: var(--muted); }
+  input, select, textarea { font: inherit; font-size: 16px; color: var(--text); background: #fff; border: 1px solid #BFC6D0; border-radius: 3px; padding: 11px 12px; width: 100%; }
+  input:focus, select:focus, textarea:focus { outline: 3px solid var(--yellow); outline-offset: 0; border-color: var(--graphite); }
+  textarea { min-height: 120px; resize: vertical; }
+  .hp { position: absolute; left: -9999px; }
+  .form-foot { grid-column: 1 / -1; display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; }
+  .form-foot p { margin: 0; font-size: 13px; color: var(--muted); }
+  .sent { grid-column: 1 / -1; display: none; background: #FFF3CF; border: 1px solid var(--yellow-deep); padding: 12px 14px; color: var(--graphite); }
+  .sent.show { display: block; }
+  @media (max-width: 900px) {
+    .hero .wrap { grid-template-columns: 1fr; padding-top: 44px; }
+    .contact .wrap { grid-template-columns: 1fr; gap: 32px; }
+    form { grid-template-columns: 1fr; padding: 20px; }
+    section.block { padding: 72px 0; }
+  }
+  footer { padding: 28px 0 40px; font-size: 14px; color: var(--muted); }
+  footer .wrap { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <a class="logo" href="#top" aria-label="Stactrace home">
+      <svg width="28" height="28" viewBox="0 0 28 28" aria-hidden="true"><rect x="2" y="20" width="10" height="6" fill="#1A2230"/><path d="M7 20 L13 9 L22 6" stroke="#1A2230" stroke-width="3" fill="none" stroke-linecap="round"/><circle cx="13" cy="9" r="2.6" fill="#FFC21A" stroke="#1A2230" stroke-width="1.2"/><path d="M22 6 l4 -2 M22 6 l4 3" stroke="#1A2230" stroke-width="2" stroke-linecap="round"/></svg>
+      stactrace
+    </a>
+    <nav class="links" aria-label="Main">
+      <a href="#how">How it works</a>
+      <a href="#services">Services</a>
+      <a href="#industries">Industries</a>
+      <a href="#consent">Consent</a>
+      <a class="btn" href="#contact">Request data</a>
+    </nav>
+  </div>
+</header>
+
+<main id="top">
+<section class="hero">
+  <div class="wrap">
+    <div>
+      <h1>Human skill, captured for robots.</h1>
+      <p class="lede">Stactrace collects first-person video of real work across India's factories, warehouses, salons and workshops, then pre-processes and annotates it so your robots can learn from it.</p>
+      <div class="ctas">
+        <a class="btn y" href="#contact">Request a sample</a>
+        <a class="ghost" href="#how">See how it works</a>
+      </div>
+    </div>
+    <div class="cell" aria-label="Animated robot arm picking boxes from a conveyor and placing them in a bin">
+      <svg id="arm" viewBox="0 0 640 420" role="img" aria-hidden="true">
+        <defs>
+          <pattern id="belt" width="24" height="12" patternUnits="userSpaceOnUse"><path d="M0 0 L12 12" stroke="#9AA4B2" stroke-width="2"/></pattern>
+        </defs>
+        <line x1="10" y1="372" x2="630" y2="372" stroke="#1A2230" stroke-width="1.5"/>
+        <g font-family="IBM Plex Mono, monospace" font-size="11" fill="#5B6677">
+          <path d="M600 60 v-34 M600 60 h34" stroke="#5B6677" stroke-width="1" fill="none"/>
+          <text x="595" y="20">z</text><text x="636" y="64" text-anchor="end">x</text>
+        </g>
+        <rect x="20" y="318" width="300" height="18" rx="9" fill="#C9CFD8" stroke="#1A2230" stroke-width="1.5"/>
+        <rect id="beltRect" x="28" y="321" width="284" height="12" fill="url(#belt)"/>
+        <circle cx="30" cy="327" r="6" fill="#fff" stroke="#1A2230" stroke-width="1.5"/>
+        <circle cx="310" cy="327" r="6" fill="#fff" stroke="#1A2230" stroke-width="1.5"/>
+        <rect x="40" y="336" width="8" height="36" fill="#1A2230"/><rect x="292" y="336" width="8" height="36" fill="#1A2230"/>
+        <path d="M470 290 L476 372 L594 372 L600 290" fill="#F6F7F9" stroke="#1A2230" stroke-width="1.5"/>
+        <line x1="466" y1="290" x2="604" y2="290" stroke="#1A2230" stroke-width="3"/>
+        <g id="placed"></g>
+        <g id="boxes"></g>
+        <path id="trail" fill="none" stroke="#0FA3C2" stroke-width="1.5" stroke-dasharray="4 5" opacity=".8"/>
+        <rect x="372" y="300" width="76" height="72" rx="4" fill="#2A3445"/>
+        <rect x="380" y="292" width="60" height="12" rx="3" fill="#1A2230"/>
+        <g id="robot">
+          <g id="upper"><rect x="-14" y="-14" width="0" height="28" rx="14" fill="#FFC21A" stroke="#1A2230" stroke-width="2"/></g>
+          <g id="fore"><rect x="-11" y="-11" width="0" height="22" rx="11" fill="#FFC21A" stroke="#1A2230" stroke-width="2"/></g>
+          <circle id="shoulder" r="17" fill="#1A2230"/><circle id="shoulderIn" r="6" fill="#FFC21A"/>
+          <circle id="elbow" r="13" fill="#1A2230"/><circle id="elbowIn" r="5" fill="#FFC21A"/>
+          <g id="grip">
+            <rect x="-9" y="0" width="18" height="22" fill="#2A3445"/>
+            <rect x="-22" y="20" width="44" height="7" rx="2" fill="#1A2230"/>
+            <rect id="fL" x="-20" y="27" width="6" height="20" fill="#1A2230"/>
+            <rect id="fR" x="14" y="27" width="6" height="20" fill="#1A2230"/>
+          </g>
+          <circle id="wrist" r="9" fill="#1A2230"/>
+        </g>
+      </svg>
+      <div class="readout" aria-hidden="true">
+        <div>Joint 1<b id="j1">0.0°</b></div>
+        <div>Joint 2<b id="j2">0.0°</b></div>
+        <div>Tool x, y<b id="xy">0, 0</b></div>
+        <div>Gripper<b id="gs">open</b></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="block" id="how">
+  <div class="wrap">
+    <h2>From a worker's hands to a robot's policy.</h2>
+    <p class="intro">A skilled worker records the task from their own point of view. We clean and label every frame, so the motion becomes a trajectory a robot can learn.</p>
+    <div class="d2r">
+      <div class="cell">
+        <div class="panel-title"><span>Human demonstration</span><span class="mono">first-person</span></div>
+        <svg id="human" viewBox="0 0 300 220" role="img" aria-label="A hand tracked by keypoints moves an item from one tray to another">
+          <rect x="0" y="0" width="300" height="220" fill="#EEF1F4"/>
+          <rect x="24" y="150" width="70" height="44" rx="4" fill="#fff" stroke="#1A2230" stroke-width="1.4"/>
+          <rect x="206" y="140" width="70" height="54" rx="4" fill="#fff" stroke="#1A2230" stroke-width="1.4"/>
+          <path id="hTrail" fill="none" stroke="#0FA3C2" stroke-width="2" stroke-linecap="round"/>
+          <rect id="hItem" width="18" height="14" rx="2" fill="#FFC21A" stroke="#1A2230" stroke-width="1.2"/>
+          <g id="hand"></g>
+        </svg>
+      </div>
+      <div class="pipe" aria-label="Processing steps">
+        <div>Blur bystanders</div>
+        <div>Track hands</div>
+        <div>Segment actions</div>
+        <div>Label and check</div>
+      </div>
+      <div class="cell">
+        <div class="panel-title"><span>Robot replay</span><span class="mono">trajectory</span></div>
+        <svg id="replay" viewBox="0 0 300 220" role="img" aria-label="A robot gripper follows the same path, moving the item between trays">
+          <rect x="0" y="0" width="300" height="220" fill="#EEF1F4"/>
+          <rect x="24" y="150" width="70" height="44" rx="4" fill="#fff" stroke="#1A2230" stroke-width="1.4"/>
+          <rect x="206" y="140" width="70" height="54" rx="4" fill="#fff" stroke="#1A2230" stroke-width="1.4"/>
+          <path id="rTrail" fill="none" stroke="#C78F00" stroke-width="2" stroke-linecap="round" stroke-dasharray="5 4"/>
+          <rect id="rItem" width="18" height="14" rx="2" fill="#FFC21A" stroke="#1A2230" stroke-width="1.2"/>
+          <g id="rGrip">
+            <line x1="0" y1="-70" x2="0" y2="-16" stroke="#1A2230" stroke-width="8"/>
+            <rect x="-16" y="-16" width="32" height="6" fill="#1A2230"/>
+            <rect id="rfL" x="-16" y="-10" width="5" height="16" fill="#FFC21A" stroke="#1A2230" stroke-width="1"/>
+            <rect id="rfR" x="11" y="-10" width="5" height="16" fill="#FFC21A" stroke="#1A2230" stroke-width="1"/>
+          </g>
+        </svg>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="block" id="services">
+  <div class="wrap">
+    <h2>Collection, pre&#8209;processing and annotation.</h2>
+    <p class="intro">Order the full pipeline or one stage. Every stage runs on footage we capture or footage you already have.</p>
+    <div class="svc-grid">
+      <div class="svc">
+        <span class="tag">Collect</span>
+        <h3>Data collection</h3>
+        <p>First-person capture of real tasks at natural pace, on site, by the people who do them every day.</p>
+        <ul>
+          <li>Head- or chest-mounted egocentric video</li>
+          <li>Worker narration, translated to English</li>
+          <li>Phones, or the capture rig you specify</li>
+          <li>Custom runs for tasks your robots fail on</li>
+        </ul>
+      </div>
+      <div class="svc">
+        <span class="tag">Process</span>
+        <h3>Pre-processing</h3>
+        <p>Footage made safe and usable before anyone labels or trains on it.</p>
+        <ul>
+          <li>Face and bystander blurring</li>
+          <li>Quality filtering: motion blur, frozen frames, hands out of view</li>
+          <li>Trimming into episodes, de-duplication</li>
+          <li>Transcription and translation of narration</li>
+        </ul>
+      </div>
+      <div class="svc">
+        <span class="tag">Annotate</span>
+        <h3>Annotation</h3>
+        <p>Labels written to your guidelines, with a second reviewer on every batch.</p>
+        <ul>
+          <li>Hand keypoints and pose</li>
+          <li>Timestamped action segments and task steps</li>
+          <li>Object boxes and masks</li>
+          <li>Language captions; success and failure labels</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="block" id="industries">
+  <div class="wrap">
+    <h2>Where we record.</h2>
+    <p class="intro">Real workplaces and real tasks, not staged chores. These are the sectors we work in today; if a task is done by hand somewhere in India, we can find the people who do it.</p>
+    <div class="sector">
+      <div class="sector-head"><h3>Manufacturing and workshops</h3><p>Factory floors and small workshops, from heavy work to fine hand assembly.</p></div>
+      <div class="ind-grid">
+        <div class="ind"><svg viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="9"/><circle cx="20" cy="20" r="3" class="acc"/><path d="M20 5 v5 M20 30 v5 M5 20 h5 M30 20 h5 M9 9 l3.5 3.5 M27.5 27.5 L31 31 M31 9 l-3.5 3.5 M12.5 27.5 L9 31"/></svg><h4>Engineering workshops</h4><p>Lathe and milling work, drilling, fitting, measuring and inspection</p></div>
+        <div class="ind"><svg viewBox="0 0 40 40" aria-hidden="true"><path d="M6 22 h22 l4 -6 H10 Z"/><path d="M14 22 v6 h10 v-6 M10 34 h18"/><path class="acc" d="M30 8 l-3 4 M34 12 l-4 2 M26 6 l0 4"/></svg><h4>Iron and fabrication</h4><p>Cutting, welding, grinding, bending and finishing metal</p></div>
+        <div class="ind"><svg viewBox="0 0 40 40" aria-hidden="true"><rect x="5" y="8" width="30" height="20"/><path d="M20 8 v8"/><path class="acc" d="M17 16 h6 l-3 5 Z"/><path d="M5 34 h30 M10 28 v6 M30 28 v6"/></svg><h4>Machine shops</h4><p>Loading and unloading machines, tool changes, deburring</p></div>
+        <div class="ind"><svg viewBox="0 0 40 40" aria-hidden="true"><path d="M6 30 h28 M10 30 V16 h18 a6 6 0 0 1 6 6 v8"/><path class="acc" d="M20 16 v-8 M17 8 h6"/><path d="M14 22 h8"/></svg><h4>Garment and textile</h4><p>Cutting, stitching, finishing, folding, packing</p></div>
+        <div class="ind"><svg viewBox="0 0 40 40" aria-hidden="true"><rect x="7" y="16" width="8" height="16" rx="2"/><rect x="25" y="16" width="8" height="16" rx="2"/><path d="M4 32 h32"/><path class="acc" d="M20 4 v8 M17 12 h6 M20 12 v4"/></svg><h4>Packing and filling lines</h4><p>Detergent, FMCG and cosmetics: filling, sealing, labelling, cartons</p></div>
+        <div class="ind"><svg viewBox="0 0 40 40" aria-hidden="true"><path d="M6 28 h28 v6 H6 Z"/><path d="M10 28 V18 h20 v10"/><path class="acc" d="M14 18 l4 -10 h4 l4 10"/></svg><h4>Wood, furniture and toys</h4><p>Sanding, joining, painting, hand assembly</p></div>
+        <div class="ind"><svg viewBox="0 0 40 40" aria-hidden="true"><rect x="7" y="10" width="26" height="20" rx="2"/><path d="M13 16 h6 v8 h8"/><circle cx="13" cy="16" r="1.6" class="acc"/><circle cx="27" cy="24" r="1.6" class="acc"/></svg><h4>Electrical and electronics</h4><p>Wiring, soldering, assembly, testing</p></div>
+        <div class="ind"><svg viewBox="0 0 40 40" aria-hidden="true"><circle cx="14" cy="26" r="7"/><circle cx="14" cy="26" r="2"/><path class="acc" d="M22 18 l10 -10 M29 5 l6 6"/></svg><h4>Automotive repair</h4><p>Diagnosis, part removal and fitting, servicing</p></div>
+        <div class="ind"><svg viewBox="0 0 40 40" aria-hidden="true"><circle cx="17" cy="17" r="9"/><path d="M24 24 l9 9"/><path class="acc" d="M13 17 l3 3 l5 -6"/></svg><h4>Quality inspection</h4><p>Visual checks, measuring, sorting rejects</p></div>
+      </div>
+    </div>
+    <div class="sector">
+      <div class="sector-head"><h3>Logistics and warehousing</h3><p>Fulfilment centres, distributor godowns and dispatch bays.</p></div>
+      <div class="ind-grid">
+        <div class="ind"><svg viewBox="0 0 40 40" aria-hidden="true"><rect x="5" y="18" width="12" height="12"/><rect x="17" y="18" width="12" height="12"/><rect x="11" y="6" width="12" height="12"/><path class="acc" d="M32 30 h4 M34 30 V12"/></svg><h4>Warehouses</h4><p>Picking, putaway, sorting, cycle counts</p></div>
+        <div class="ind"><svg viewBox="0 0 40 40" aria-hidden="true"><path d="M6 14 l14 -7 l14 7 v14 l-14 7 l-14 -7 Z"/><path d="M6 14 l14 7 l14 -7 M20 21 v14"/><path class="acc" d="M13 10.5 l14 7"/></svg><h4>Packing and dispatch</h4><p>Packing orders, labelling, palletising</p></div>
+        <div class="ind"><svg viewBox="0 0 40 40" aria-hidden="true"><rect x="4" y="12" width="20" height="14"/><path d="M24 16 h7 l5 6 v4 h-12"/><circle cx="11" cy="29" r="3" class="acc"/><circle cx="29" cy="29" r="3" class="acc"/></svg><h4>Loading and delivery</h4><p>Loading and unloading vehicles, last-mile handling</p></div>
+      </div>
+    </div>
+    <div class="sector">
+      <div class="sector-head"><h3>Retail and stores</h3><p>Where products meet shelves and customers.</p></div>
+      <div class="ind-grid">
+        <div class="ind"><svg viewBox="0 0 40 40" aria-hidden="true"><path d="M6 12 h28 l-3 8 H9 Z"/><path d="M9 20 v14 h22 V20"/><path class="acc" d="M16 34 v-8 h8 v8"/></svg><h4>Supermarkets and stores</h4><p>Restocking, facing shelves, displays, checkout</p></div>
+        <div class="ind"><svg viewBox="0 0 40 40" aria-hidden="true"><path d="M6 34 V10 h28 v24"/><path d="M6 18 h28 M6 26 h28"/><rect x="10" y="12" width="5" height="6" class="acc"/><rect x="20" y="20" width="6" height="6" class="acc"/></svg><h4>Kirana and convenience</h4><p>Shelf arrangement, order packing, stock handling</p></div>
+        <div class="ind"><svg viewBox="0 0 40 40" aria-hidden="true"><path d="M8 16 h20 v8 a8 8 0 0 1 -8 8 h-4 a8 8 0 0 1 -8 -8 Z"/><path d="M28 18 h3 a3 3 0 0 1 0 6 h-3"/><path class="acc" d="M14 12 c0 -2 2 -2 2 -5 M20 12 c0 -2 2 -2 2 -5"/></svg><h4>Cafés and quick service</h4><p>Order prep, counter work, cleaning</p></div>
+      </div>
+    </div>
+    <div class="sector">
+      <div class="sector-head"><h3>Services</h3><p>Skilled hands-on work done for customers.</p></div>
+      <div class="ind-grid">
+        <div class="ind"><svg viewBox="0 0 40 40" aria-hidden="true"><circle cx="11" cy="28" r="4"/><circle cx="23" cy="28" r="4"/><path d="M13.5 25 L28 8 M20.5 25 L8 10"/><circle cx="17" cy="17" r="1.4" class="acc"/></svg><h4>Salons</h4><p>Hair cutting and styling, colouring</p></div>
+        <div class="ind"><svg viewBox="0 0 40 40" aria-hidden="true"><rect x="8" y="16" width="10" height="18" rx="2"/><path d="M10 16 v-5 h6 v5"/><path class="acc" d="M26 34 V14 M23 14 h6 l-1 -6 h-4 Z"/></svg><h4>Beauty and personal care</h4><p>Nails, make-up and skin services; product kitting</p></div>
+        <div class="ind"><svg viewBox="0 0 40 40" aria-hidden="true"><path d="M6 20 h28 a14 14 0 0 1 -28 0 Z"/><path class="acc" d="M14 14 c0 -3 3 -3 3 -6 M22 14 c0 -3 3 -3 3 -6"/></svg><h4>Food and kitchens</h4><p>Prep, cooking, plating, dishwashing</p></div>
+      </div>
+    </div>
+    <div class="more">
+      <p><b>Need a task that isn't listed?</b> Tell us what your robot needs to learn and we'll find a site that does it.</p>
+      <a class="btn y" href="#contact">Ask for a site</a>
+    </div>
+  </div>
+</section>
+
+<section class="block dark" id="process">
+  <div class="wrap">
+    <h2>How a project runs.</h2>
+    <p class="intro">Start with a scoped sample you can test in your own pipeline, before any volume commitment.</p>
+    <ol class="steps">
+      <li><h3>Scope</h3><p>You share tasks, environments, hours and label spec. We confirm what we can capture and by when.</p></li>
+      <li><h3>Site and consent</h3><p>The site owner approves recording. Each worker gives written consent and can say no at no cost.</p></li>
+      <li><h3>Capture</h3><p>Workers record real shifts and narrate what they do and why.</p></li>
+      <li><h3>Process and label</h3><p>Blurring, filtering, transcription and annotation, with a second-reviewer pass.</p></li>
+      <li><h3>Deliver</h3><p>Episodes in your format, each with a manifest and consent record.</p></li>
+    </ol>
+  </div>
+</section>
+
+<section class="block" id="consent">
+  <div class="wrap">
+    <h2>Every hour ships with its paperwork.</h2>
+    <p class="intro">Buyers now ask where footage came from and who agreed to it. We answer that for every hour we deliver.</p>
+    <div class="prov">
+      <dl>
+        <dt>Owner-approved sites</dt><dd>We record only where the owner has agreed in writing to the tasks and areas on camera.</dd>
+        <dt>Per-worker consent</dt><dd>Each worker signs before recording starts and can stop at any time without it affecting their job.</dd>
+        <dt>Paid on top of wages</dt><dd>Workers are paid for every approved hour, in addition to their regular pay.</dd>
+        <dt>Bystanders protected</dt><dd>People who did not consent are blurred; formulas, supplier labels and other sensitive areas stay off camera.</dd>
+        <dt>DPDP-aware handling</dt><dd>Data is handled with India's Digital Personal Data Protection Act in mind and licensed with re-identification barred.</dd>
+      </dl>
+      <div class="manifest" aria-label="Example delivery manifest">
+        <h3>What comes with each episode</h3>
+        <table>
+          <tr><td>Task</td><td>Pick, pack and seal a carton</td></tr>
+          <tr><td>Industry</td><td>Logistics, fulfilment centre</td></tr>
+          <tr><td>Duration</td><td>06 min 41 s</td></tr>
+          <tr><td>Narration</td><td>Transcribed, translated to English</td></tr>
+          <tr><td>Labels</td><td>Action segments, hand keypoints, captions</td></tr>
+          <tr><td>Site approval</td><td class="ok">On file</td></tr>
+          <tr><td>Worker consent</td><td class="ok">On file</td></tr>
+          <tr><td>Bystander blur</td><td class="ok">Applied and reviewed</td></tr>
+        </table>
+        <p>Illustrative example of the fields we provide.</p>
+      </div>
+    </div>
+    <div class="formats" aria-label="Delivery formats">
+      <span>MP4 + JSON</span><span>LeRobot</span><span>RLDS</span><span>MCAP</span><span>COCO</span><span>Your own schema</span>
+    </div>
+  </div>
+</section>
+
+<section class="block contact" id="contact">
+  <div class="wrap">
+    <div class="side">
+      <h2>Tell us what you're training.</h2>
+      <p class="intro">Send the tasks, volume and label spec you have in mind. We reply within two working days with what we can deliver and a sample plan.</p>
+      <p>Prefer email? Write to <a href="mailto:himanshu@stactrace.com">himanshu@stactrace.com</a>.</p>
+    </div>
+    <form action="https://formsubmit.co/himanshu@stactrace.com" method="POST">
+      <div class="sent" id="sent" role="status">Request sent. We'll reply to your email within two working days.</div>
+      <input type="hidden" name="_subject" value="New data request from stactrace.com">
+      <input type="hidden" name="_template" value="table">
+      <input type="hidden" name="_next" value="https://stactrace.com/?sent=1#contact">
+      <input type="text" name="_honey" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
+      <div class="field"><label for="name">Name</label><input id="name" name="name" autocomplete="name" required></div>
+      <div class="field"><label for="email">Work email</label><input id="email" name="email" type="email" autocomplete="email" required></div>
+      <div class="field"><label for="company">Company</label><input id="company" name="company" autocomplete="organization" required></div>
+      <div class="field"><label for="role">Role <small>(optional)</small></label><input id="role" name="role" autocomplete="organization-title"></div>
+      <div class="field"><label for="need">What do you need?</label>
+        <select id="need" name="need" required>
+          <option value="">Choose one</option>
+          <option>New data collection</option>
+          <option>Annotation of my footage</option>
+          <option>Pre-processing of my footage</option>
+          <option>Collection, processing and annotation</option>
+          <option>Something else</option>
+        </select>
+      </div>
+      <div class="field"><label for="industry">Industry</label>
+        <select id="industry" name="industry">
+          <option>Engineering or fabrication workshop</option><option>Factory or production line</option><option>Garment and textile</option>
+          <option>Logistics and warehousing</option><option>Retail and stores</option><option>Cafés and food</option>
+          <option>Salons, beauty and personal care</option><option>Automotive repair</option><option>Other or several</option>
+        </select>
+      </div>
+      <div class="field full"><label for="volume">Approximate volume</label>
+        <select id="volume" name="volume">
+          <option>Sample first (under 10 hours)</option><option>10 to 100 hours</option><option>100 to 1,000 hours</option><option>Over 1,000 hours</option><option>Not sure yet</option>
+        </select>
+      </div>
+      <div class="field full"><label for="message">Tasks, environments and label spec</label><textarea id="message" name="message" placeholder="For example: 50 hours of warehouse picking, hands in view, action segments and English captions, delivered as LeRobot." required></textarea></div>
+      <div class="form-foot">
+        <p>We use your details only to reply to this request.</p>
+        <button class="btn" type="submit">Send request</button>
+      </div>
+    </form>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>Stactrace, Delhi NCR, India</span>
+    <a href="mailto:himanshu@stactrace.com">himanshu@stactrace.com</a>
+  </div>
+</footer>
+
+<script>
+(function () {
+  var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var NS = "http://www.w3.org/2000/svg";
+  function $(id) { return document.getElementById(id); }
+  function ease(t) { return t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; }
+  function lerp(a, b, t) { return a + (b - a) * t; }
+
+  /* Hero: two-link arm doing pick and place */
+  var base = { x: 410, y: 292 }, L1 = 165, L2 = 150, GRIP = 50;
+  var PICK = 268, PLACE = 535, BOX_TOP = 296, LIFT = 170, BIN_DROP = 300;
+  var K = [ // [duration s, tool x, tool y, gripper closed]
+    [0.0, PICK, LIFT, 0], [0.9, PICK, BOX_TOP, 0], [0.35, PICK, BOX_TOP, 1], [0.8, PICK, LIFT, 1],
+    [1.3, PLACE, LIFT, 1], [0.8, PLACE, BIN_DROP, 1], [0.35, PLACE, BIN_DROP, 0], [0.7, PLACE, LIFT, 0], [1.2, PICK, LIFT, 0]
+  ];
+  var total = 0, starts = [];
+  K.forEach(function (k) { starts.push(total); total += k[0]; });
+
+  function poseAt(t) {
+    t = t % total;
+    for (var i = 1; i < K.length; i++) {
+      var s = starts[i], e = s + K[i][0];
+      if (t <= e) {
+        var u = K[i][0] ? ease((t - s) / K[i][0]) : 1;
+        var g = K[i][3] && K[i - 1][3] ? 1 : (K[i][3] ? u : (K[i - 1][3] ? 1 - u : 0));
+        return { x: lerp(K[i - 1][1], K[i][1], u), y: lerp(K[i - 1][2], K[i][2], u), g: g, phase: i };
+      }
+    }
+    return { x: K[0][1], y: K[0][2], g: 0, phase: K.length - 1 };
+  }
+  function ik(tx, ty) {
+    var dx = tx - base.x, dy = ty - base.y, d = Math.min(Math.hypot(dx, dy), L1 + L2 - 1);
+    var c2 = (d * d - L1 * L1 - L2 * L2) / (2 * L1 * L2);
+    var best = null;
+    [1, -1].forEach(function (sg) { // keep whichever elbow sits higher
+      var a2 = sg * Math.acos(Math.max(-1, Math.min(1, c2)));
+      var a1 = Math.atan2(dy, dx) - Math.atan2(L2 * Math.sin(a2), L1 + L2 * Math.cos(a2));
+      var r = { a1: a1, a2: a2, ex: base.x + L1 * Math.cos(a1), ey: base.y + L1 * Math.sin(a1), wx: tx, wy: ty };
+      if (!best || r.ey < best.ey) best = r;
+    });
+    return best;
+  }
+  function seg(g, x1, y1, x2, y2, w) {
+    var r = g.firstElementChild, len = Math.hypot(x2 - x1, y2 - y1), ang = Math.atan2(y2 - y1, x2 - x1) * 180 / Math.PI;
+    r.setAttribute("width", len + w); r.setAttribute("x", -w / 2);
+    g.setAttribute("transform", "translate(" + x1 + "," + y1 + ") rotate(" + ang + ")");
+  }
+  function box(x) {
+    var g = document.createElementNS(NS, "g");
+    g.innerHTML = '<rect x="-20" y="-24" width="40" height="24" fill="#E2B56B" stroke="#1A2230" stroke-width="1.5"/><path d="M-20 -14 h40" stroke="#1A2230" stroke-width="1"/><rect x="-6" y="-24" width="12" height="10" fill="#F4D9A6" stroke="#1A2230" stroke-width="1"/>';
+    g.setAttribute("transform", "translate(" + x + ",318)");
+    return g;
+  }
+  var boxesG = $("boxes"), placedG = $("placed");
+  var held = box(PICK), queue = [box(158), box(48)];
+  boxesG.appendChild(held); queue.forEach(function (b) { boxesG.appendChild(b); });
+  var trailPts = [], cycle = 0, dropped = false, placedCount = 0;
+  var SLOTS = [158, 48, -62];
+
+  function drawArm(t) {
+    var p = poseAt(t), c = Math.floor(t / total), tc = t % total;
+    if (c !== cycle) { // a new box arrives at the pick point
+      cycle = c; trailPts = []; dropped = false;
+      held = queue.shift(); var nb = box(-62); queue.push(nb); boxesG.appendChild(nb);
+    }
+    var s = ik(p.x, p.y - GRIP);
+    seg($("upper"), base.x, base.y, s.ex, s.ey, 28);
+    seg($("fore"), s.ex, s.ey, s.wx, s.wy, 22);
+    ["shoulder", "shoulderIn"].forEach(function (id) { $(id).setAttribute("cx", base.x); $(id).setAttribute("cy", base.y); });
+    ["elbow", "elbowIn"].forEach(function (id) { $(id).setAttribute("cx", s.ex); $(id).setAttribute("cy", s.ey); });
+    $("wrist").setAttribute("cx", s.wx); $("wrist").setAttribute("cy", s.wy);
+    $("grip").setAttribute("transform", "translate(" + s.wx + "," + s.wy + ")");
+    var open = 6 * (1 - p.g);
+    $("fL").setAttribute("x", -20 - open); $("fR").setAttribute("x", 14 + open);
+
+    var ph = p.phase;
+    if (ph <= 2) held.setAttribute("transform", "translate(" + PICK + ",318)");
+    else if (ph <= 6) held.setAttribute("transform", "translate(" + p.x + "," + (p.y + 22) + ")");
+    else if (!dropped) {
+      dropped = true; boxesG.removeChild(held); placedCount++;
+      var pb = box(0); pb.setAttribute("transform", "translate(" + (505 + (placedCount % 3) * 30) + ",372)");
+      placedG.appendChild(pb); if (placedG.childNodes.length > 3) placedG.removeChild(placedG.firstChild);
+    }
+    var feedStart = starts[7], f = ph >= 7 ? ease(Math.max(0, Math.min(1, (tc - feedStart) / (total - feedStart)))) : 0;
+    var targets = [PICK, 158, 48];
+    queue.forEach(function (b, i) { b.setAttribute("transform", "translate(" + lerp(SLOTS[i], targets[i], f) + ",318)"); });
+    $("beltRect").setAttribute("x", 28 - (f * 110) % 24);
+
+    trailPts.push(p.x.toFixed(1) + "," + p.y.toFixed(1)); if (trailPts.length > 500) trailPts.shift();
+    $("trail").setAttribute("d", "M" + trailPts.join(" L"));
+    $("j1").textContent = (-s.a1 * 180 / Math.PI).toFixed(1) + "°";
+    $("j2").textContent = (Math.abs(s.a2) * 180 / Math.PI).toFixed(1) + "°";
+    $("xy").textContent = Math.round(p.x - base.x) + ", " + Math.round(base.y - p.y);
+    $("gs").textContent = p.g > .5 ? "closed" : "open";
+  }
+
+  /* Human demonstration and robot replay */
+  var path = [[58, 166], [60, 120], [100, 72], [160, 56], [215, 80], [240, 124], [241, 160]];
+  function along(u) {
+    var n = path.length - 1, fpos = Math.min(Math.max(u, 0), .9999) * n, i = Math.floor(fpos), t = fpos - i;
+    var p0 = path[Math.max(i - 1, 0)], p1 = path[i], p2 = path[i + 1], p3 = path[Math.min(i + 2, n)];
+    function cr(a, b, c, d) { return .5 * ((2 * b) + (-a + c) * t + (2 * a - 5 * b + 4 * c - d) * t * t + (-a + 3 * b - 3 * c + d) * t * t * t); }
+    return [cr(p0[0], p1[0], p2[0], p3[0]), cr(p0[1], p1[1], p2[1], p3[1])];
+  }
+  var handG = $("hand");
+  // fingers spread downward-up from a wrist below the item: [base angle deg, segment lengths]
+  var fingers = [[-150, [10, 9, 7]], [-112, [16, 10, 8]], [-92, [18, 11, 8]], [-72, [16, 10, 8]], [-54, [13, 8, 6]]];
+  function drawHand(x, y, grab) {
+    var html = "", pts = [[x, y]];
+    fingers.forEach(function (fg, k) {
+      var a = fg[0] * Math.PI / 180, px = x, py = y, prev = [x, y];
+      fg[1].forEach(function (len, j) {
+        if (j > 0) a += (k === 0 ? 0.35 : -0.1) * (0.6 + grab) * (k === 0 ? 1 : (k < 3 ? -1 : 1)) * 0.6;
+        px += Math.cos(a) * len * 1.9; py += Math.sin(a) * len * 1.9;
+        html += '<line x1="' + prev[0].toFixed(1) + '" y1="' + prev[1].toFixed(1) + '" x2="' + px.toFixed(1) + '" y2="' + py.toFixed(1) + '" stroke="#1A2230" stroke-width="1.6" stroke-linecap="round"/>';
+        pts.push([px, py]); prev = [px, py];
+      });
+    });
+    pts.forEach(function (q, i) { html += '<circle cx="' + q[0].toFixed(1) + '" cy="' + q[1].toFixed(1) + '" r="' + (i ? 2.8 : 4.2) + '" fill="#0FA3C2" stroke="#fff" stroke-width="1"/>'; });
+    handG.innerHTML = html;
+  }
+  var D = 5.2, pipes = document.querySelectorAll(".pipe div");
+  function drawD2R(t) {
+    var c = (t % D) / D, u = ease(Math.max(0, Math.min(1, (c - .12) / .7)));
+    var grab = c > .08 && c < .86 ? 1 : 0, hp = along(u), pts = [];
+    for (var k = 0; k <= 48; k++) { var q = along(k / 48 * u); pts.push(q[0].toFixed(1) + "," + q[1].toFixed(1)); }
+    var d = u > 0 ? "M" + pts.join(" L") : "";
+    $("hTrail").setAttribute("d", d); $("rTrail").setAttribute("d", d);
+    drawHand(hp[0], hp[1] + 46, grab);
+    $("hItem").setAttribute("x", hp[0] - 9); $("hItem").setAttribute("y", hp[1] - 7);
+    $("rItem").setAttribute("x", hp[0] - 9); $("rItem").setAttribute("y", hp[1] - 7);
+    $("rGrip").setAttribute("transform", "translate(" + hp[0] + "," + (hp[1] - 4) + ")");
+    var o = grab ? 0 : 5; $("rfL").setAttribute("x", -16 - o); $("rfR").setAttribute("x", 11 + o);
+    var on = Math.min(3, Math.floor(c * 4.4));
+    pipes.forEach(function (el, i) { el.classList.toggle("on", i === on); });
+  }
+
+  if (reduce) { drawArm(starts[4] + .5); drawD2R(D * .55); return; }
+  var t0 = null;
+  function frame(ts) {
+    if (t0 === null) t0 = ts;
+    if (!document.hidden) { var t = (ts - t0) / 1000; drawArm(t); drawD2R(t); }
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+})();
+
+if (location.search.indexOf("sent=1") !== -1) document.getElementById("sent").classList.add("show");
+</script>
+</body>
+</html>
